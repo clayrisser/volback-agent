@@ -1,0 +1,2 @@
+def clean():
+    print('Cleaning . . .')
