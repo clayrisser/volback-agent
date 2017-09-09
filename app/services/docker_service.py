@@ -15,9 +15,3 @@ def get_containers(container_ids=None):
         for container in client.containers.list():
             containers.append(container.attrs)
     return containers
-
-def get_mounts(container_ids=None):
-    mounts = list()
-    for container in get_containers(container_ids):
-        mounts = _.flatten([mounts, container['Mounts']])
-    return mounts

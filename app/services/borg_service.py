@@ -20,14 +20,18 @@ class Borg():
         os.system(command)
         return self
 
-    def create(self, backup_location, backup_name):
+    def create(self, backup_name, backup_location):
         return self.system(
             'create',
             '--list ::' + backup_name + ' ' + path.abspath(path.join(os.getcwd(), backup_location))
         )
 
-    def extract(self):
-        pass
+    def extract(self, backup_name, extract_location, extract_from):
+        cwd = os.getcwd()
+        os.chdir(extract_location)
+        response = self.system('extract', '::' + backup_name + ' ' + extract_from)
+        os.chdir(cwd)
+        return response
 
     def check(self):
         pass
@@ -35,8 +39,13 @@ class Borg():
     def rename(self):
         pass
 
-    def list(self):
-        pass
+    def list(self, backup_name=None):
+        response = None
+        if backup_name:
+            response = self.system('list', '--short ::' + backup_name).split('\n')
+        else:
+            response = self.system('list', '--short').split('\n')
+        return response[:len(response) - 1]
 
     def delete(self):
         pass

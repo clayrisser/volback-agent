@@ -2,7 +2,8 @@ from cement.core.foundation import CementApp
 from config import NAME, BANNER
 from controllers import (
     BackupController,
-    BaseController
+    BaseController,
+    RestoreController
 )
 
 class App(CementApp):
@@ -10,7 +11,8 @@ class App(CementApp):
         label = NAME
         base_controller = BaseController
         handlers = [
-            BackupController
+            BackupController,
+            RestoreController
         ]
 
 def main():
