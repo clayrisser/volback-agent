@@ -9,8 +9,8 @@ class Borg():
 
     @staticmethod
     def init(repo_path, passphrase=None, verbose=False):
-        self = Borg(repo_path, passphrase=passphrase, verbose=verbose)
         repo_path = path.abspath(path.join(os.getcwd(), repo_path))
+        self = Borg(repo_path, passphrase=passphrase, verbose=verbose)
         pipe_list = None
         pargs = {
             'verbose': self.verbose
@@ -23,6 +23,8 @@ class Borg():
             ]
         if not passphrase:
             pargs['encryption'] = 'none'
+        if not path.exists(repo_path):
+            os.makedirs(repo_path)
         self.command(
             'init',
             pargs,

@@ -1,7 +1,7 @@
 import os
 import shutil
 from distutils.dir_util import copy_tree
-import urllib
+import base64
 import re
 import yaml
 from bisect import bisect_left
@@ -11,70 +11,79 @@ from docker_service import get_containers
 import time
 
 class Volback():
-    def __init__(self, repo, passphrase=None, verbose=False, mount_path='/volumes'):
+    def __init__(self, repo, passphrase=None, verbose=False, mounts_path='/volumes'):
         repo = path.abspath(path.join(os.getcwd(), repo))
         if path.isfile(repo):
             exit('File exists where repo should be at ' + repo)
         self.repo = repo
-        self.mount_path = mount_path
+        self.mounts_path = mounts_path
         self.passphrase = passphrase
         self.verbose = verbose
+        self.config_filename = 'volback.yml'
 
     def backup(self, container_ids=None, mount_destinations=None):
-        borg = None
-        if path.exists(self.repo):
-            borg = Borg(self.repo, passphrase=self.passphrase, verbose=self.verbose)
-        else:
-            borg = Borg.init(self.repo, passphrase=self.passphrase, verbose=self.verbose)
         for container in get_containers(container_ids):
             for mount in container['Mounts']:
                 if not mount_destinations:
-                    data_type = 'raw'
-                    image = container['Config']['Image']
-                    timestamp = time.time()
-                    backup_name_str = encode_backup_name(timestamp, mount['Destination'], image)
-                    mount_location = self.mount_path + '/' + urllib.quote_plus(mount['Source'] + ':' + mount['Destination'])
-                    with open(mount_location + '/volback.yml', 'w') as f:
-                        config ={
-                            'source': mount['Source'].encode('utf8'),
-                            'destination': mount['Destination'].encode('utf8'),
-                            'timestamp': timestamp,
-                            'data_type': data_type,
-                            'image': image.encode('utf8')
-                        }
-                        yaml.dump(config, f, default_flow_style=False)
-                    borg.create(backup_name_str, mount_location)
-                    os.remove(mount_location + '/volback.yml')
+                    service_name = container['Name'][1:]
+                    self.backup_mount(service_name, container, mount)
 
     def restore(self, container_ids=None, mount_destinations=False, restore_time=False):
-        if not path.exists(self.repo):
-            exit('Repo does not exist at ' + self.repo)
-        borg = Borg(self.repo, passphrase=self.passphrase, verbose=self.verbose)
         for container in get_containers(container_ids):
             for mount in container['Mounts']:
                 if not mount_destinations:
-                    image = container['Config']['Image']
-                    timestamp = find_timestamp(restore_time, mount['Destination'], image, borg=borg)
-                    if not timestamp:
-                        continue
-                    backup_name_str = encode_backup_name(timestamp, mount['Destination'], image)
-                    mount_location = self.mount_path + '/' + urllib.quote_plus(mount['Source'] + ':' + mount['Destination'])
-                    tmp_location = path.join(self.mount_path, 'tmp')
-                    extract_path = path.abspath((tmp_location + '/' + mount_location).replace('//', '/').replace('//', '/'))
-                    extract_from = borg.list(backup_name_str)[0]
-                    extract_to = path.abspath(path.join(extract_path, extract_from))
-                    if not path.exists(extract_path):
-                        os.makedirs(extract_path)
-                    borg.extract(backup_name_str, extract_path, extract_from)
-                    os.remove(path.join(extract_to, 'volback.yml'))
-                    copy_tree(extract_to, mount_location)
-                    shutil.rmtree(tmp_location)
+                    service_name = container['Name'][1:]
+                    self.restore_mount(service_name, container, mount)
 
-class BackupName():
-    def __init__(self, timestamp, destination, image):
-        self.timestamp = timestamp
-        self.destination = destination
-        self.image = image
+    def backup_mount(self, service_name, container, mount):
+        mount_path = path.join(self.mounts_path, str_encode(mount['Source'] + ':' + mount['Destination']))
+        backup_path = path.join(self.repo, service_name, str_encode(mount['Destination']))
+        borg = None
+        if path.exists(backup_path):
+            borg = Borg(backup_path, passphrase=self.passphrase, verbose=self.verbose)
+        else:
+            borg = Borg.init(backup_path, passphrase=self.passphrase, verbose=self.verbose)
+        data_type = 'raw'
+        image = container['Config']['Image'].encode('utf8')
+        timestamp = time.time()
+        backup_name = encode_backup_name(timestamp, mount['Destination'], image)
+        with open(path.join(mount_path, self.config_filename), 'w') as f:
+            yaml.dump({
+                'source': mount['Source'].encode('utf8'),
+                'destination': mount['Destination'].encode('utf8'),
+                'timestamp': timestamp,
+                'data_type': data_type,
+                'image': image
+            }, f, default_flow_style=False)
+            borg.create(backup_name, mount_path)
+            os.remove(path.join(mount_path, self.config_filename))
+
+    def restore_mount(self, service_name, container, mount, restore_time=None):
+        mount_path = path.join(self.mounts_path, str_encode(mount['Source'] + ':' + mount['Destination']))
+        backup_path = path.join(self.repo, service_name, str_encode(mount['Destination']))
+        if not path.exists(backup_path):
+            print('Backup does not exist for mount \'' + mount['Destination'] + '\' in service \'' + service_name + '\'')
+            return
+        borg = Borg(backup_path, passphrase=self.passphrase, verbose=self.verbose)
+        data_type = 'raw'
+        image = container['Config']['Image'].encode('utf8')
+        timestamp = find_timestamp(restore_time, mount['Destination'], image, borg=borg)
+        backup_name = encode_backup_name(timestamp, mount['Destination'], image)
+        extract_path = get_extract_path(mount_path)
+        extract_from = borg.list(backup_name)[0]
+        contents_path = path.join(extract_path, extract_from)
+        if not path.exists(extract_path):
+            os.makedirs(extract_path)
+        borg.extract(backup_name, extract_path, extract_from)
+        os.remove(path.join(contents_path, 'volback.yml'))
+        copy_tree(contents_path, mount_path)
+        shutil.rmtree(extract_path)
+
+def get_extract_path(backup_path):
+    extract_path = path.join(backup_path, str_encode(str(time.time())))
+    if path.exists(extract_path):
+        extract_path = find_extract_path(backup_path)
+    return extract_path
 
 def find_timestamp(restore_time, destination, image, borg):
     timestamp = time.time()
@@ -101,20 +110,26 @@ def closest_timestamp(timestamps, timestamp):
         return after
     return before
 
+class BackupName():
+    def __init__(self, timestamp, destination, image):
+        self.timestamp = timestamp
+        self.destination = destination
+        self.image = image
+
 def decode_backup_name(backup_name_str):
     timestamp = None
     destination = None
     image = None
-    backup_name_str = urllib.unquote_plus(backup_name_str)
+    backup_name_str = str_decode(backup_name_str)
     matches = re.findall(r'^[^\|]+', backup_name_str)
     if len(matches) > 0:
         timestamp = float(matches[0])
     matches = re.findall(r'(?<=\|).+(?=\|)', backup_name_str)
     if len(matches) > 0:
-        destination = urllib.unquote_plus(matches[0])
+        destination = str_decode(matches[0])
     matches = re.findall(r'[^\|]+$', backup_name_str)
     if len(matches) > 0:
-        image = urllib.unquote_plus(matches[0])
+        image = str_decode(matches[0])
     return BackupName(
         timestamp=timestamp,
         destination=destination,
@@ -131,4 +146,10 @@ def encode_backup_name(poly, destination=None, image=None):
         image = backup_name.image
     else:
         timestamp = poly
-    return urllib.quote_plus(str(timestamp) + '|' + urllib.quote_plus(destination) + '|' + urllib.quote_plus(image))
+    return str_encode(str(timestamp) + '|' + str_encode(destination) + '|' + str_encode(image))
+
+def str_encode(string):
+    return base64.b64encode(string).replace('=', '')
+
+def str_decode(string):
+    return base64.b64decode(string + ('=' * (-len(string) % 4)))
