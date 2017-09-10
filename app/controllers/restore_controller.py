@@ -27,7 +27,12 @@ class RestoreController(CementBaseController):
             (['-c', '--containers'], {
                 'action': 'store',
                 'dest': 'container_ids',
-                'help': 'Comma separated list of containers to backup'
+                'help': 'Comma separated list of containers to restore'
+            }),
+            (['-m', '--mounts'], {
+                'action': 'store',
+                'dest': 'mount_destinations',
+                'help': 'Comma separated list of mount destinations to restore'
             }),
             (['-v', '--verbose'], {
                 'action': 'store_true',
@@ -53,8 +58,15 @@ class RestoreController(CementBaseController):
         container_ids = os.environ['CONTAINER_IDS'].split(',') if 'CONTAINER_IDS' in os.environ else None
         if pargs.container_ids:
             container_ids = pargs.container_ids.split(',')
+        mount_destinations = os.environ['MOUNT_DESTINATIONS'].split(',') if 'MOUNT_DESTINATIONS' in os.environ else None
+        if pargs.mount_destinations:
+            mount_destinations = pargs.mount_destinations.split(',')
         verbose = os.environ['VERBOSE'] if 'VERBOSE' in os.environ else None
         if pargs.verbose:
             verbose = pargs.verbose
         volback = Volback(repo, passphrase=passphrase, verbose=verbose)
-        volback.restore(container_ids, restore_time=restore_time)
+        volback.restore(
+            container_ids=container_ids,
+            mount_destinations=mount_destinations,
+            restore_time=restore_time
+        )

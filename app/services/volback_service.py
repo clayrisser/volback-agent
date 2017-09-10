@@ -23,17 +23,35 @@ class Volback():
 
     def backup(self, container_ids=None, mount_destinations=None):
         for container in get_containers(container_ids):
+            service_name = container['Name'][1:]
             for mount in container['Mounts']:
-                if not mount_destinations:
-                    service_name = container['Name'][1:]
-                    self.backup_mount(service_name, container, mount)
+                if mount_destinations:
+                    valid = False
+                    for mount_destination in mount_destinations:
+                        if trim_path(mount['Destination']) == trim_path(mount_destination):
+                            valid = True
+                    if not valid:
+                        if self.verbose:
+                            print('Skipping ' + mount['Destination'])
+                        continue
+                self.backup_mount(service_name, container, mount)
 
     def restore(self, container_ids=None, mount_destinations=False, restore_time=False):
+        if not container_ids:
+            exit('Missing container ids')
         for container in get_containers(container_ids):
+            service_name = container['Name'][1:]
             for mount in container['Mounts']:
-                if not mount_destinations:
-                    service_name = container['Name'][1:]
-                    self.restore_mount(service_name, container, mount)
+                if mount_destinations:
+                    valid = False
+                    for mount_destination in mount_destinations:
+                        if trim_path(mount['Destination']) == trim_path(mount_destination):
+                            valid = True
+                    if not valid:
+                        if self.verbose:
+                            print('Skipping ' + mount['Destination'])
+                        continue
+                self.restore_mount(service_name, container, mount)
 
     def backup_mount(self, service_name, container, mount):
         mount_path = path.join(self.mounts_path, str_encode(mount['Source'] + ':' + mount['Destination']))
@@ -153,3 +171,6 @@ def str_encode(string):
 
 def str_decode(string):
     return base64.b64decode(string + ('=' * (-len(string) % 4)))
+
+def trim_path(path):
+    return re.sub(r'(^\/)|(\/$)', '', path)
