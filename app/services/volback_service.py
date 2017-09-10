@@ -7,7 +7,7 @@ import yaml
 from bisect import bisect_left
 from os import path
 from borg_service import Borg
-from docker_service import get_containers
+from docker_service import get_services
 import time
 
 class Volback():
@@ -22,9 +22,8 @@ class Volback():
         self.config_filename = 'volback.yml'
 
     def backup(self, container_ids=None, mount_destinations=None):
-        for container in get_containers(container_ids):
-            service_name = container['Name'][1:]
-            for mount in container['Mounts']:
+        for service in get_services(container_ids):
+            for mount in service.container['Mounts']:
                 if mount_destinations:
                     valid = False
                     for mount_destination in mount_destinations:
@@ -34,14 +33,13 @@ class Volback():
                         if self.verbose:
                             print('Skipping ' + mount['Destination'])
                         continue
-                self.backup_mount(service_name, container, mount)
+                self.backup_mount(service.name, service.container, mount)
 
-    def restore(self, container_ids=None, mount_destinations=False, restore_time=False):
-        if not container_ids:
+    def restore(self, container_ids=None, mount_destinations=False, restore_time=False, restore_all=False):
+        if not restore_all and not container_ids:
             exit('Missing container ids')
-        for container in get_containers(container_ids):
-            service_name = container['Name'][1:]
-            for mount in container['Mounts']:
+        for service in get_services(container_ids):
+            for mount in service.container['Mounts']:
                 if mount_destinations:
                     valid = False
                     for mount_destination in mount_destinations:
@@ -51,7 +49,7 @@ class Volback():
                         if self.verbose:
                             print('Skipping ' + mount['Destination'])
                         continue
-                self.restore_mount(service_name, container, mount)
+                self.restore_mount(service.name, service.container, mount)
 
     def backup_mount(self, service_name, container, mount):
         mount_path = path.join(self.mounts_path, str_encode(mount['Source'] + ':' + mount['Destination']))

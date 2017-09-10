@@ -34,6 +34,11 @@ class RestoreController(CementBaseController):
                 'dest': 'mount_destinations',
                 'help': 'Comma separated list of mount destinations to restore'
             }),
+            (['-a', '--all'], {
+                'action': 'store_true',
+                'dest': 'restore_all',
+                'help': 'Restore all containers'
+            }),
             (['-v', '--verbose'], {
                 'action': 'store_true',
                 'dest': 'verbose',
@@ -61,6 +66,9 @@ class RestoreController(CementBaseController):
         mount_destinations = os.environ['MOUNT_DESTINATIONS'].split(',') if 'MOUNT_DESTINATIONS' in os.environ else None
         if pargs.mount_destinations:
             mount_destinations = pargs.mount_destinations.split(',')
+        restore_all = os.environ['RESTORE_ALL'] if 'RESTORE_ALL' in os.environ else None
+        if pargs.verbose:
+            restore_all = pargs.restore_all
         verbose = os.environ['VERBOSE'] if 'VERBOSE' in os.environ else None
         if pargs.verbose:
             verbose = pargs.verbose
@@ -68,5 +76,6 @@ class RestoreController(CementBaseController):
         volback.restore(
             container_ids=container_ids,
             mount_destinations=mount_destinations,
-            restore_time=restore_time
+            restore_time=restore_time,
+            restore_all=restore_all
         )

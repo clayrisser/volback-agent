@@ -3,15 +3,31 @@ import pydash as _
 
 client = docker.DockerClient(base_url='unix://var/run/docker.sock')
 
-def get_container(container_id):
-    return client.containers.get(container_id).attrs
+def get_service(container_id):
+    service_name = None
+    container = None
+    if type(container_id) == str:
+        service = container_id.split(':')
+        service_name = service[0]
+        if len(service) >= 2:
+            service_name = service[1]
+        container = client.containers.get(service[0]).attrs
+    else:
+        container = container_id
+        service_name = container['Name'][1:]
+    return Service(service_name, container)
 
-def get_containers(container_ids=None):
-    containers = list()
+def get_services(container_ids):
+    services = list()
     if container_ids:
         for container_id in container_ids:
-            containers.append(get_container(container_id))
+            services.append(get_service(container_id))
     else:
         for container in client.containers.list():
-            containers.append(container.attrs)
-    return containers
+            services.append(get_service(container.attrs))
+    return services
+
+class Service():
+    def __init__(self, name, container):
+        self.name = name
+        self.container = container
