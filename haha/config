@@ -1,7 +1,0 @@
-[repository]
-version = 1
-segments_per_dir = 10000
-max_segment_size = 5242880
-append_only = 0
-id = 7f5ae1fd6c2f71a23a7a2b712131d5ec19cdb0da188dfff440340ce79c662567
-
