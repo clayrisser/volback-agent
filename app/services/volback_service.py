@@ -7,7 +7,8 @@ import yaml
 from bisect import bisect_left
 from os import path
 from borg_service import Borg
-from docker_service import get_services
+from docker_service import get_services, valid_mount
+from pydash import _
 import time
 
 class Volback():
@@ -24,6 +25,8 @@ class Volback():
     def backup(self, container_ids=None, mount_destinations=None):
         for service in get_services(container_ids):
             for mount in service.container['Mounts']:
+                if not valid_mount(mount):
+                    continue
                 if mount_destinations:
                     valid = False
                     for mount_destination in mount_destinations:
@@ -40,6 +43,8 @@ class Volback():
             exit('Missing container ids')
         for service in get_services(container_ids):
             for mount in service.container['Mounts']:
+                if not valid_mount(mount):
+                    continue
                 if mount_destinations:
                     valid = False
                     for mount_destination in mount_destinations:
@@ -63,6 +68,8 @@ class Volback():
         image = container['Config']['Image'].encode('utf8')
         timestamp = time.time()
         backup_name = encode_backup_name(timestamp, mount['Destination'], image)
+        if not path.isdir(mount_path):
+            exit('Mount path \'' + mount_path + '\' does not exist')
         with open(path.join(mount_path, self.config_filename), 'w') as f:
             yaml.dump({
                 'source': mount['Source'].encode('utf8'),

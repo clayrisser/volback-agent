@@ -98,10 +98,11 @@ ENV/
 # mypy
 .mypy_cache/
 
-# Emacs
+# Editors
 \#*\#
 .\#*
 *~
+.idea/
 
 # Application
 *.db

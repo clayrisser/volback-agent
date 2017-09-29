@@ -1,6 +1,6 @@
 ############################################################
-# Dockerfile to run jamrizzi/volback-agent
-# Based on Alpine
+# Tag: jamrizzi/volback-agent:latest
+# Base: alpine
 ############################################################
 
 FROM alpine:3.5
