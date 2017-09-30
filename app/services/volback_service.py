@@ -33,6 +33,7 @@ class Volback():
 
     def backup(self, container_ids=None, mount_destinations=None):
         for service in get_services(container_ids):
+            has_valid_mounts = False
             for mount in service.container['Mounts']:
                 if not valid_mount(mount):
                     continue
@@ -45,7 +46,10 @@ class Volback():
                         if self.verbose:
                             print('Skipping ' + mount['Destination'])
                         continue
+                has_valid_mounts = True
                 self.backup_mount(service.name, service.container, mount)
+            if not has_valid_mounts:
+                print('No valid mounts to backup')
 
     def restore(self, container_ids=None, mount_destinations=False, restore_time=False, restore_all=False):
         if not restore_all and not container_ids:
