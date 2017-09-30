@@ -19,7 +19,7 @@ build:
 
 .PHONY: test
 test:
-	@python ./test
+	@python ./tests
 	@echo ::: Test :::
 
 .PHONY: publish
