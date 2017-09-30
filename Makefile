@@ -19,7 +19,10 @@ build:
 
 .PHONY: test
 test: env
-	@docker run --name some-python --rm -v $(CWD):/app python:2.7 /app/env/bin/python /app/tests
+	@echo starting tests . . .
+	@docker run -d --name some-docker --privileged --rm -v $(CWD):/app/ -v /var/lib/dind:/var/lib/docker docker:dind 1>/dev/null
+	@docker exec some-docker /bin/sh /app/tests/test.sh
+	@docker stop some-docker 1>/dev/null
 	@echo ::: Test :::
 
 .PHONY: publish
