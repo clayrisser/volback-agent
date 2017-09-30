@@ -1,0 +1,6 @@
+mongo:
+  variables:
+    backup-file: "backup.archive"
+  data-location: "/data/db"
+  backup: "mongodump --gzip --archive=%DUMP%"
+  restore: "mongorestore --gzip --archive=%DUMP%"

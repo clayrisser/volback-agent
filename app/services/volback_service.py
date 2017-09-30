@@ -9,6 +9,7 @@ from os import path
 from borg_service import Borg
 from docker_service import get_services, valid_mount
 from pydash import _
+from handler_service import get_handlers
 from app.exceptions.volback_exceptions import (
     FileExistsAtRepo,
     MountPathNotFound
@@ -28,6 +29,7 @@ class Volback():
         self.passphrase = passphrase
         self.verbose = verbose
         self.config_filename = 'volback.yml'
+        self.handlers = get_handlers()
 
     def backup(self, container_ids=None, mount_destinations=None):
         for service in get_services(container_ids):
@@ -71,7 +73,7 @@ class Volback():
             borg = Borg(backup_path, passphrase=self.passphrase, verbose=self.verbose)
         else:
             borg = Borg.init(backup_path, passphrase=self.passphrase, verbose=self.verbose)
-        data_type = 'raw'
+        data_type = self.get_data_type(container)
         image = container['Config']['Image'].encode('utf8')
         timestamp = time.time()
         backup_name = encode_backup_name(timestamp, mount['Destination'], image)
@@ -95,7 +97,7 @@ class Volback():
             print('Backup does not exist for mount \'' + mount['Destination'] + '\' in service \'' + service_name + '\'')
             return
         borg = Borg(backup_path, passphrase=self.passphrase, verbose=self.verbose)
-        data_type = 'raw'
+        data_type = self.get_data_type(container)
         image = container['Config']['Image'].encode('utf8')
         timestamp = find_timestamp(restore_time, mount['Destination'], image, borg=borg)
         backup_name = encode_backup_name(timestamp, mount['Destination'], image)
@@ -108,6 +110,12 @@ class Volback():
         os.remove(path.join(contents_path, 'volback.yml'))
         copy_tree(contents_path, mount_path)
         shutil.rmtree(extract_path)
+
+    def get_data_type(self, container):
+        data_type = container['Config']['Image'][:container['Config']['Image'].index(':')]
+        if not _.includes(_.keys(self.handlers), data_type):
+            data_type = 'raw'
+        return data_type
 
 def get_extract_path(backup_path):
     extract_path = path.join(backup_path, str_encode(str(time.time())))
