@@ -18,7 +18,7 @@ build:
 	@echo ::: Built :::
 
 .PHONY: test
-test:
+test: env
 	@docker run --name some-python --rm -v $(CWD):/app python:2.7 /app/env/bin/python /app/tests
 	@echo ::: Test :::
 
