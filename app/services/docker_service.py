@@ -1,5 +1,8 @@
 import docker
 import pydash as _
+from app.exceptions.docker_exceptions import (
+    ContainerNotFound
+)
 
 client = docker.DockerClient(base_url='unix://var/run/docker.sock')
 
@@ -17,7 +20,10 @@ def get_service(container_id):
         service_name = service[0]
         if len(service) >= 2:
             service_name = service[1]
-        container = client.containers.get(service[0]).attrs
+        try:
+            container = client.containers.get(service[0]).attrs
+        except docker.errors.NotFound:
+            raise ContainerNotFound(service[0])
     else:
         container = container_id
         service_name = container['Name'][1:]

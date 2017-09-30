@@ -9,13 +9,20 @@ from os import path
 from borg_service import Borg
 from docker_service import get_services, valid_mount
 from pydash import _
+from app.exceptions.volback_exceptions import (
+    FileExistsAtRepo,
+    MountPathNotFound
+)
+from app.exceptions.docker_exceptions import (
+    ContainerIdsNotFound
+)
 import time
 
 class Volback():
     def __init__(self, repo, passphrase=None, verbose=False, mounts_path='/volumes'):
         repo = path.abspath(path.join(os.getcwd(), repo))
         if path.isfile(repo):
-            exit('File exists where repo should be at ' + repo)
+            raise FileExistsAtRepo(repo)
         self.repo = repo
         self.mounts_path = mounts_path
         self.passphrase = passphrase
@@ -40,7 +47,7 @@ class Volback():
 
     def restore(self, container_ids=None, mount_destinations=False, restore_time=False, restore_all=False):
         if not restore_all and not container_ids:
-            exit('Missing container ids')
+            raise ContainerIdsNotFound()
         for service in get_services(container_ids):
             for mount in service.container['Mounts']:
                 if not valid_mount(mount):
@@ -69,7 +76,7 @@ class Volback():
         timestamp = time.time()
         backup_name = encode_backup_name(timestamp, mount['Destination'], image)
         if not path.isdir(mount_path):
-            exit('Mount path \'' + mount_path + '\' does not exist')
+            raise MountPathNotFound(mount_path)
         with open(path.join(mount_path, self.config_filename), 'w') as f:
             yaml.dump({
                 'source': mount['Source'].encode('utf8'),

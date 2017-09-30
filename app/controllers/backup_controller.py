@@ -1,6 +1,9 @@
 import os
 from cement.core.controller import CementBaseController, expose
 from app.services.volback_service import Volback
+from app.exceptions.volback_exceptions import (
+    RepoPathNotFound
+)
 
 class BackupController(CementBaseController):
     class Meta:
@@ -43,7 +46,7 @@ class BackupController(CementBaseController):
         if pargs.repo:
             repo = pargs.repo
         if not repo:
-            exit('Missing repo')
+            raise RepoPathNotFound()
         passphrase = os.environ['PASSPHRASE'] if 'PASSPHRASE' in os.environ else None
         if pargs.passphrase:
             passphrase = pargs.passphrase
