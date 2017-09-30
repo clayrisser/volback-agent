@@ -17,6 +17,11 @@ build:
 	@docker build -t $(IMAGE) -f $(DOCKERFILE) $(CWD)
 	@echo ::: Built :::
 
+.PHONY: test
+test:
+	@python ./test
+	@echo ::: Test :::
+
 .PHONY: publish
 publish: dist
 	@twine upload dist/*
