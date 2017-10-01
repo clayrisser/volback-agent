@@ -13,7 +13,7 @@ start: env
 	@python ./app/ --help
 
 .PHONY: build
-build:
+build: test
 	@echo Building: $(IMAGE):$(TAG)
 	@docker build -t $(IMAGE):$(TAG) -f $(DOCKERFILE) $(CWD)
 	@echo ::: Built :::

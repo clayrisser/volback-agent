@@ -32,6 +32,7 @@ def get_handlers():
             for key in _.keys(data):
                 variables[key] = data[key]['variables'] if 'variables' in data[key] else {}
                 variables[key]['dump_path'] = path.join(data[key]['data'], dump)
+        variables['env'] = os.environ
         env = Environment(loader=FileSystemLoader(loader_path), trim_blocks=True)
         template = env.get_template(filename)
         data = yaml.load(template.render(**variables))
