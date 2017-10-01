@@ -36,7 +36,7 @@ class Volback():
         if len(valid_mounts) <= 0:
             print('No valid mounts to backup')
         for valid_mount in valid_mounts:
-            self.backup_mount(valid_mount['service_name'], valid_mount['service_container'], valid_mount['mount'])
+            self.backup_mount(valid_mount['service_name'], valid_mount['container'], valid_mount['mount'])
 
     def restore(self, container_ids=None, mount_destinations=False, restore_time=False, restore_all=False):
         if not restore_all and not container_ids:
@@ -45,7 +45,7 @@ class Volback():
         if len(valid_mounts) <= 0:
             print('No valid mounts to backup')
         for valid_mount in valid_mounts:
-            self.restore_mount(valid_mount['service_name'], valid_mount['service_container'], valid_mount['mount'])
+            self.restore_mount(valid_mount['service_name'], valid_mount['container'], valid_mount['mount'])
 
     def get_valid_mounts(self, container_ids=None, mount_destinations=None):
         valid_mounts = list()
@@ -64,7 +64,7 @@ class Volback():
                         continue
                 valid_mounts.append({
                     'service_name': service.name,
-                    'service_container': service.container,
+                    'container': service.container,
                     'mount': mount
                 })
         return valid_mounts
