@@ -10,3 +10,5 @@ BANNER = '''
 ''' + NAME + ' v' + VERSION + '''
 Copyright (c) ''' + COPYRIGHT + ' ' + AUTHOR + '''
 '''
+
+CONFIG_FILENAME = 'volback.yml'

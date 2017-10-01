@@ -1,6 +1,9 @@
 import unittest
 import app
-from app.services import volback_service
+from app.services import (
+    volback_service,
+    encode_service
+)
 from os import makedirs
 from os import path
 
@@ -12,7 +15,7 @@ class TestVolbackService(TestCase):
     def setUp(self):
         self.repo = '/backup'
         self.volback = Volback(self.repo, passphrase=None, verbose=True)
-        self.container_ids = ['some-mongo']
+        self.container_ids = ['some-mongo', 'some-alpine']
         self.mount_destinations = None
 
     def test_volback_service(self):
@@ -21,7 +24,7 @@ class TestVolbackService(TestCase):
     def test_backup(self):
         for valid_mount in self.volback.get_valid_mounts(self.container_ids, self.mount_destinations):
             mount = valid_mount['mount']
-            mount_path = path.join(self.volback.mounts_path, volback_service.str_encode(mount['Source'] + ':' + mount['Destination']))
+            mount_path = path.join(self.volback.mounts_path, encode_service.str_encode(mount['Source'] + ':' + mount['Destination']))
             if not path.isdir(mount_path):
                 makedirs(mount_path)
         self.volback.backup(self.container_ids, self.mount_destinations)
@@ -34,14 +37,14 @@ class TestVolbackService(TestCase):
 
     def test_get_valid_mounts(self):
         valid_mounts = self.volback.get_valid_mounts(self.container_ids, self.mount_destinations)
-        self.assertEqual(len(valid_mounts), 1)
+        self.assertEqual(len(valid_mounts), 3)
         self.assertEqual(valid_mounts[0]['service_name'], 'some-mongo')
         self.assertIsInstance(valid_mounts[0]['container'], dict)
 
     def test_backup_mount(self):
         valid_mount = self.volback.get_valid_mounts(['some-mongo'], ['/data/db'])[0]
         mount = valid_mount['mount']
-        mount_path = path.join(self.volback.mounts_path, volback_service.str_encode(mount['Source'] + ':' + mount['Destination']))
+        mount_path = path.join(self.volback.mounts_path, encode_service.str_encode(mount['Source'] + ':' + mount['Destination']))
         if not path.isdir(mount_path):
             makedirs(mount_path)
         self.volback.backup_mount(valid_mount['service_name'], valid_mount['container'], mount)
@@ -51,7 +54,7 @@ class TestVolbackService(TestCase):
         self.test_backup()
         valid_mount = self.volback.get_valid_mounts(['some-mongo'], ['/data/db'])[0]
         mount = valid_mount['mount']
-        mount_path = path.join(self.volback.mounts_path, volback_service.str_encode(mount['Source'] + ':' + mount['Destination']))
+        mount_path = path.join(self.volback.mounts_path, encode_service.str_encode(mount['Source'] + ':' + mount['Destination']))
         if not path.isdir(mount_path):
             makedirs(mount_path)
         self.volback.restore_mount(valid_mount['service_name'], valid_mount['container'], mount)
