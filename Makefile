@@ -20,8 +20,8 @@ build:
 
 .PHONY: test
 test: env
+	@echo initializing test environment . . .
 	-@docker rm -f some-docker &>/dev/null || true
-	@echo starting tests . . .
 	@docker run -d --name some-docker --privileged --rm -v $(CWD):/app/ -v /var/lib/dind:/var/lib/docker docker:dind 1>/dev/null
 	@docker exec some-docker /bin/sh /app/tests/docker_container.sh
 	@docker stop some-docker 1>/dev/null
