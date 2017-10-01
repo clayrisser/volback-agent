@@ -6,7 +6,7 @@ from os import path
 from borg_service import Borg
 from docker_service import get_services, valid_mount
 from pydash import _
-from handler_service import get_handlers
+import handler_service
 from app.exceptions.volback_exceptions import (
     FileExistsAtRepo,
     MountPathNotFound
@@ -26,7 +26,7 @@ class Volback():
         self.mounts_path = mounts_path
         self.passphrase = passphrase
         self.verbose = verbose
-        self.handlers = get_handlers()
+        self.handlers = handler_service.get_handlers()
 
     def backup(self, container_ids=None, mount_destinations=None):
         valid_mounts = self.get_valid_mounts(container_ids, mount_destinations)
@@ -78,8 +78,7 @@ class Volback():
         image = container['Config']['Image'].encode('utf8')
         if data_type == 'raw':
             return raw_service.backup_mount(borg, self.mounts_path, image, mount)
-        print('Data type not raw')
-        sys.stdout.flush()
+        return handler_service.backup_mount(borg, self.mounts_path, image, mount, data_type)
 
     def restore_mount(self, service_name, container, mount, restore_time=None):
         mount_path = path.join(self.mounts_path, encode_service.str_encode(mount['Source'] + ':' + mount['Destination']))
@@ -92,8 +91,7 @@ class Volback():
         image = container['Config']['Image'].encode('utf8')
         if data_type == 'raw':
             return raw_service.restore_mount(borg, self.mounts_path, image, mount, restore_time)
-        print('Data type not raw')
-        sys.stdout.flush()
+        return handler_service.restore_mount(borg, self.mounts_path, image, mount, data_type, restore_time=restore_time)
 
     def get_data_type(self, container):
         data_type = container['Config']['Image'][:container['Config']['Image'].index(':')]
