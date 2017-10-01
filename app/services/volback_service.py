@@ -75,10 +75,18 @@ class Volback():
         else:
             borg = Borg.init(backup_path, passphrase=self.passphrase, verbose=self.verbose)
         data_type = self.get_data_type(container)
-        image = container['Config']['Image'].encode('utf8')
-        if data_type == 'raw':
-            return raw_service.backup_mount(borg, self.mounts_path, image, mount)
-        return handler_service.backup_mount(borg, self.mounts_path, image, mount, data_type)
+        if data_type != 'raw' and trim_path(self.handlers[data_type]['data']) == trim_path(mount['Destination']):
+            return handler_service.backup_mount(
+                borg,
+                self.mounts_path,
+                container,
+                mount,
+                data_type,
+                handlers=self.handlers,
+                verbose=self.verbose
+            )
+        return raw_service.backup_mount(borg, self.mounts_path, container, mount)
+
 
     def restore_mount(self, service_name, container, mount, restore_time=None):
         mount_path = path.join(self.mounts_path, encode_service.str_encode(mount['Source'] + ':' + mount['Destination']))
@@ -88,10 +96,18 @@ class Volback():
             return
         borg = Borg(backup_path, passphrase=self.passphrase, verbose=self.verbose)
         data_type = self.get_data_type(container)
-        image = container['Config']['Image'].encode('utf8')
-        if data_type == 'raw':
-            return raw_service.restore_mount(borg, self.mounts_path, image, mount, restore_time)
-        return handler_service.restore_mount(borg, self.mounts_path, image, mount, data_type, restore_time=restore_time)
+        if data_type != 'raw' and trim_path(self.handlers[data_type]['data']) == trim_path(mount['Destination']):
+            return handler_service.restore_mount(
+                borg,
+                self.mounts_path,
+                container,
+                mount,
+                data_type,
+                handlers=self.handlers,
+                restore_time=restore_time,
+                verbose=self.verbose
+            )
+        return raw_service.restore_mount(borg, self.mounts_path, container, mount, restore_time)
 
     def get_data_type(self, container):
         data_type = container['Config']['Image'][:container['Config']['Image'].index(':')]

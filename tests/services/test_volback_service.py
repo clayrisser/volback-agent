@@ -1,8 +1,11 @@
 import unittest
+from distutils.dir_util import copy_tree
+import os
 import app
 from app.services import (
     volback_service,
-    encode_service
+    encode_service,
+    handler_service
 )
 from os import makedirs
 from os import path
@@ -25,8 +28,16 @@ class TestVolbackService(TestCase):
         for valid_mount in self.volback.get_valid_mounts(self.container_ids, self.mount_destinations):
             mount = valid_mount['mount']
             mount_path = path.join(self.volback.mounts_path, encode_service.str_encode(mount['Source'] + ':' + mount['Destination']))
-            if not path.isdir(mount_path):
-                makedirs(mount_path)
+            if not path.exists(self.volback.mounts_path):
+                makedirs(self.volback.mounts_path)
+            if not path.exists(mount_path):
+                handlers = handler_service.get_handlers()
+                data_type = self.volback.get_data_type(valid_mount['container'])
+                if data_type != 'raw' and volback_service.trim_path(handlers[data_type]['data']) == volback_service.trim_path(mount['Destination']):
+                    os.symlink(mount['Source'], mount_path)
+                else:
+                    os.makedirs(mount_path)
+                    copy_tree(mount['Source'], mount_path)
         self.volback.backup(self.container_ids, self.mount_destinations)
         self.assertTrue(True)
 
@@ -45,8 +56,16 @@ class TestVolbackService(TestCase):
         valid_mount = self.volback.get_valid_mounts(['some-mongo'], ['/data/db'])[0]
         mount = valid_mount['mount']
         mount_path = path.join(self.volback.mounts_path, encode_service.str_encode(mount['Source'] + ':' + mount['Destination']))
-        if not path.isdir(mount_path):
-            makedirs(mount_path)
+        if not path.exists(self.volback.mounts_path):
+            makedirs(self.volback.mounts_path)
+        if not path.exists(mount_path):
+            handlers = handler_service.get_handlers()
+            data_type = self.volback.get_data_type(valid_mount['container'])
+            if data_type != 'raw' and volback_service.trim_path(handlers[data_type]['data']) == volback_service.trim_path(mount['Destination']):
+                os.symlink(mount['Source'], mount_path)
+            else:
+                os.makedirs(mount_path)
+                copy_tree(mount['Source'], mount_path)
         self.volback.backup_mount(valid_mount['service_name'], valid_mount['container'], mount)
         self.assertTrue(True)
 
@@ -55,8 +74,16 @@ class TestVolbackService(TestCase):
         valid_mount = self.volback.get_valid_mounts(['some-mongo'], ['/data/db'])[0]
         mount = valid_mount['mount']
         mount_path = path.join(self.volback.mounts_path, encode_service.str_encode(mount['Source'] + ':' + mount['Destination']))
-        if not path.isdir(mount_path):
-            makedirs(mount_path)
+        if not path.exists(self.volback.mounts_path):
+            makedirs(self.volback.mounts_path)
+        if not path.exists(mount_path):
+            handlers = handler_service.get_handlers()
+            data_type = self.volback.get_data_type(valid_mount['container'])
+            if data_type != 'raw' and volback_service.trim_path(handlers[data_type]['data']) == volback_service.trim_path(mount['Destination']):
+                os.symlink(mount['Source'], mount_path)
+            else:
+                os.makedirs(mount_path)
+                copy_tree(mount['Source'], mount_path)
         self.volback.restore_mount(valid_mount['service_name'], valid_mount['container'], mount)
         self.assertTrue(True)
 

@@ -12,11 +12,11 @@ ignore_mounts = {
     ]
 }
 
-def get_service(container_id):
+def get_service(service_id):
     service_name = None
     container = None
-    if type(container_id) == str:
-        service = container_id.split(':')
+    if type(service_id) == str:
+        service = service_id.split(':')
         service_name = service[0]
         if len(service) >= 2:
             service_name = service[1]
@@ -24,10 +24,14 @@ def get_service(container_id):
             container = client.containers.get(service[0]).attrs
         except docker.errors.NotFound:
             raise ContainerNotFound(service[0])
-    else:
-        container = container_id
+    else: # prevents getting container 2x for get_services
+        container = service_id
         service_name = container['Name'][1:]
     return Service(service_name, container)
+
+def execute(container_id, cmd, stdout=True, stderr=True, stdin=True, privileged=False):
+    container = client.containers.get(container_id)
+    return container.exec_run(cmd, stdout=stdout, stderr=stderr, stdin=stdin, privileged=privileged)
 
 def get_services(container_ids):
     services = list()

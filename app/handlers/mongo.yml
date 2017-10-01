@@ -1,6 +1,6 @@
 mongo:
   variables:
-    backup-file: "backup.archive"
-  data-location: "/data/db"
-  backup: "mongodump --gzip --archive=%DUMP%"
-  restore: "mongorestore --gzip --archive=%DUMP%"
+    backup_file: "backup.archive"
+  data: "/data/db"
+  backup: "mongodump --gzip --archive={{ mongo.dump_path }}/{{ mongo.backup_file }}"
+  restore: "mongorestore --gzip --archive={{ mongo.dump_path }}/{{ mongo.backup_file }}"
