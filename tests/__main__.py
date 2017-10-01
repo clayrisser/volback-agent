@@ -1,7 +1,9 @@
 import services
 import pydash as _
+import test_main
 
 def main():
+    test_main.main()
     run_tests(services)
 
 def run_tests(module):

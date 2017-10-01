@@ -32,28 +32,23 @@ class Volback():
         self.handlers = get_handlers()
 
     def backup(self, container_ids=None, mount_destinations=None):
-        for service in get_services(container_ids):
-            has_valid_mounts = False
-            for mount in service.container['Mounts']:
-                if not valid_mount(mount):
-                    continue
-                if mount_destinations:
-                    valid = False
-                    for mount_destination in mount_destinations:
-                        if trim_path(mount['Destination']) == trim_path(mount_destination):
-                            valid = True
-                    if not valid:
-                        if self.verbose:
-                            print('Skipping ' + mount['Destination'])
-                        continue
-                has_valid_mounts = True
-                self.backup_mount(service.name, service.container, mount)
-            if not has_valid_mounts:
-                print('No valid mounts to backup')
+        valid_mounts = self.get_valid_mounts(container_ids, mount_destinations)
+        if len(valid_mounts) <= 0:
+            print('No valid mounts to backup')
+        for valid_mount in valid_mounts:
+            self.backup_mount(valid_mount['service_name'], valid_mount['service_container'], valid_mount['mount'])
 
     def restore(self, container_ids=None, mount_destinations=False, restore_time=False, restore_all=False):
         if not restore_all and not container_ids:
             raise ContainerIdsNotFound()
+        valid_mounts = self.get_valid_mounts(container_ids, mount_destinations)
+        if len(valid_mounts) <= 0:
+            print('No valid mounts to backup')
+        for valid_mount in valid_mounts:
+            self.restore_mount(valid_mount['service_name'], valid_mount['service_container'], valid_mount['mount'])
+
+    def get_valid_mounts(self, container_ids=None, mount_destinations=None):
+        valid_mounts = list()
         for service in get_services(container_ids):
             for mount in service.container['Mounts']:
                 if not valid_mount(mount):
@@ -67,7 +62,12 @@ class Volback():
                         if self.verbose:
                             print('Skipping ' + mount['Destination'])
                         continue
-                self.restore_mount(service.name, service.container, mount)
+                valid_mounts.append({
+                    'service_name': service.name,
+                    'service_container': service.container,
+                    'mount': mount
+                })
+        return valid_mounts
 
     def backup_mount(self, service_name, container, mount):
         mount_path = path.join(self.mounts_path, str_encode(mount['Source'] + ':' + mount['Destination']))

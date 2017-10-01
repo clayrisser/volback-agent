@@ -1,6 +1,7 @@
 SHELL := /bin/bash
 CWD := $(shell pwd)
-IMAGE := "jamrizzi/volback-agent:latest"
+IMAGE := "jamrizzi/volback-agent"
+TAG := "latest"
 SOME_CONTAINER := $(shell echo some-$(IMAGE) | sed 's/[^a-zA-Z0-9]//g')
 DOCKERFILE := $(CWD)/Dockerfile
 
@@ -13,15 +14,16 @@ start: env
 
 .PHONY: build
 build:
-	@echo Building: $(IMAGE)
-	@docker build -t $(IMAGE) -f $(DOCKERFILE) $(CWD)
+	@echo Building: $(IMAGE):$(TAG)
+	@docker build -t $(IMAGE):$(TAG) -f $(DOCKERFILE) $(CWD)
 	@echo ::: Built :::
 
 .PHONY: test
 test: env
+	-@docker rm -f some-docker &>/dev/null || true
 	@echo starting tests . . .
 	@docker run -d --name some-docker --privileged --rm -v $(CWD):/app/ -v /var/lib/dind:/var/lib/docker docker:dind 1>/dev/null
-	@docker exec some-docker /bin/sh /app/tests/test.sh
+	@docker exec some-docker /bin/sh /app/tests/docker_container.sh
 	@docker stop some-docker 1>/dev/null
 	@echo ::: Test :::
 
@@ -44,22 +46,22 @@ env:
 
 .PHONY: pull
 pull:
-	@docker pull $(IMAGE)
+	@docker pull $(IMAGE):$(TAG)
 	@echo ::: Pulled :::
 
 .PHONY: push
 push:
-	@docker push $(IMAGE)
+	@docker push $(IMAGE):$(TAG)
 	@echo ::: Pushed :::
 
 .PHONY: run
 run:
-	@echo Running: $(IMAGE)
-	@docker run --name $(SOME_CONTAINER) --rm $(IMAGE) -h
+	@echo Running: $(IMAGE):$(TAG)
+	@docker run --name $(SOME_CONTAINER) --rm $(IMAGE):$(TAG) -h
 
 .PHONY: ssh
 ssh:
-	@dockssh $(IMAGE)
+	@dockssh $(IMAGE):$(TAG)
 
 .PHONY: essh
 essh:
